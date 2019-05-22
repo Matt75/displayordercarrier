@@ -1,0 +1,23 @@
+{
+  "name": "matt75/displayordercarrier",
+  "description": "PrestaShop module displayordercarrier",
+  "homepage": "https://github.com/Matt75/displayordercarrier",
+  "license": "AFL-3.0",
+  "authors": [
+    {
+      "name": "Matt75",
+      "email": "matthias.raigne@prestashop.com"
+    }
+  ],
+  "require": {
+    "php": ">=5.6"
+  },
+  "config": {
+    "platform": {
+      "php": "5.6.0"
+    },
+    "preferred-install": "dist",
+    "prepend-autoloader": false
+  },
+  "type": "prestashop-module"
+}

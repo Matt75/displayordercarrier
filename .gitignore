@@ -1,0 +1,5 @@
+/config_*.xml
+/translations/
+!/translations/index.php
+/vendor/
+!/vendor/index.php
