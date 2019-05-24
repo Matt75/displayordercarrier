@@ -2,7 +2,7 @@
 <module>
     <name>displayordercarrier</name>
     <displayName><![CDATA[Carrier logo on Orders list]]></displayName>
-    <version><![CDATA[1.0.0]]></version>
+    <version><![CDATA[1.0.1]]></version>
     <description><![CDATA[Adds carrier logo on Order list]]></description>
     <author><![CDATA[Matt75]]></author>
     <is_configurable>0</is_configurable>

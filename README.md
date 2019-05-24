@@ -1,6 +1,6 @@
 # Display order carrier
 
-This is a demo module
+This is a demo module but can be used safely on your PrestaShop instance
 
 ## About
 
