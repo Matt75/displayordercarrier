@@ -4,7 +4,7 @@ This is a demo module but can be used safely on your PrestaShop instance
 
 ## About
 
-Adds carrier logo on orders list
+Adds carrier column on orders list
 
 ## Reporting issues
 

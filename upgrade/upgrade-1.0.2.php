@@ -23,12 +23,16 @@
  * @license   https://opensource.org/licenses/AFL-3.0  Academic Free License (AFL 3.0)
  * International Registered Trademark & Property of PrestaShop SA
  */
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
 
-global $_MODULE;
-$_MODULE = array();
-$_MODULE['<{displayordercarrier}prestashop>displayordercarrier_0c6b21631c4abcee17e4f05445ffa029'] = 'Colonne transporteur sur la liste des commandes';
-$_MODULE['<{displayordercarrier}prestashop>displayordercarrier_610d2185e454143c833b2ab478e3843f'] = 'Ajoute une colonne transporteur sur la liste des commandes';
-$_MODULE['<{displayordercarrier}prestashop>displayordercarrier_914419aa32f04011357d3b604a86d7eb'] = 'Transporteur';
-$_MODULE['<{displayordercarrier}prestashop>admindisplayordercarriercontroller_6ac7c925b66e40a6e7039d616b7a13b2'] = 'Colonne transporteur sur la liste des commandes';
-$_MODULE['<{displayordercarrier}prestashop>admindisplayordercarriercontroller_a21d6886ee2645e2200dc34df490e67d'] = 'Afficher le logo à la place du nom du transporteur';
-$_MODULE['<{displayordercarrier}prestashop>admindisplayordercarriercontroller_c9cc8cce247e49bae79f15173ce97354'] = 'Enregistrer';
+/**
+ * @param DisplayOrderCarrier $module
+ *
+ * @return bool
+ */
+function upgrade_module_1_0_2($module)
+{
+    return $module->installTabs();
+}
