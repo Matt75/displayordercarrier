@@ -1,23 +1,41 @@
 {
-  "name": "matt75/displayordercarrier",
-  "description": "PrestaShop module displayordercarrier",
-  "homepage": "https://github.com/Matt75/displayordercarrier",
-  "license": "AFL-3.0",
-  "authors": [
-    {
-      "name": "Matt75",
-      "email": "matthias.raigne@prestashop.com"
-    }
-  ],
-  "require": {
-    "php": ">=5.6"
-  },
-  "config": {
-    "platform": {
-      "php": "5.6.0"
+    "type": "prestashop-module",
+    "name": "matt75/displayordercarrier",
+    "description": "PrestaShop module displayordercarrier",
+    "homepage": "https://github.com/Matt75/displayordercarrier",
+    "license": "AFL-3.0",
+    "authors": [
+        {
+            "name": "Matt75",
+            "email": "matthias.raigne@prestashop.com"
+        }
+    ],
+    "config": {
+        "platform": {
+            "php": "5.6.0"
+        },
+        "preferred-install": "dist",
+        "classmap-authoritative": true,
+        "optimize-autoloader": true,
+        "sort-packages": true,
+        "prepend-autoloader": false
     },
-    "preferred-install": "dist",
-    "prepend-autoloader": false
-  },
-  "type": "prestashop-module"
+    "autoload": {
+        "psr-4": {
+            "PrestaShop\\Module\\DisplayOrderCarrier\\": "src/"
+        },
+        "classmap": [
+            "controllers",
+            "displayordercarrier.php"
+        ]
+    },
+    "scripts": {
+        "set-license-header": [
+            "@php ./vendor/bin/header-stamp --license=\"assets/afl.txt\" --exclude=\".github,node_modules,vendor\""
+        ]
+    },
+    "require-dev": {
+        "prestashop/php-dev-tools": "^3.4"
+    },
+    "author": "PrestaShop"
 }

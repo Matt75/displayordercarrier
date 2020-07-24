@@ -1,39 +1,37 @@
 <?php
 /**
- * 2007-2019 PrestaShop SA and Contributors
+ * Copyright since 2007 PrestaShop SA and Contributors
+ * PrestaShop is an International Registered Trademark & Property of PrestaShop SA
  *
  * NOTICE OF LICENSE
  *
- * This source file is subject to the Academic Free License (AFL 3.0)
- * that is bundled with this package in the file LICENSE.txt.
+ * This source file is subject to the Academic Free License 3.0 (AFL-3.0)
+ * that is bundled with this package in the file LICENSE.md.
  * It is also available through the world-wide-web at this URL:
  * https://opensource.org/licenses/AFL-3.0
  * If you did not receive a copy of the license and are unable to
  * obtain it through the world-wide-web, please send an email
  * to license@prestashop.com so we can send you a copy immediately.
  *
- * DISCLAIMER
- *
- * Do not edit or add to this file if you wish to upgrade PrestaShop to newer
- * versions in the future. If you wish to customize PrestaShop for your
- * needs please refer to https://www.prestashop.com for more information.
- *
  * @author    PrestaShop SA <contact@prestashop.com>
- * @copyright 2007-2019 PrestaShop SA and Contributors
- * @license   https://opensource.org/licenses/AFL-3.0  Academic Free License (AFL 3.0)
- * International Registered Trademark & Property of PrestaShop SA
+ * @copyright Since 2007 PrestaShop SA and Contributors
+ * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License 3.0 (AFL-3.0)
  */
 if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+require __DIR__ . '/vendor/autoload.php';
+
 class DisplayOrderCarrier extends Module
 {
     /**
-     * @var array list of hooks used
+     * List of hooks used
      */
-    public $hooks = [
-        'actionAdminControllerSetMedia',
+    const HOOKS = [
+        'actionOrderGridDefinitionModifier',
+        'actionOrderGridDataModifier',
+        'actionOrderGridQueryBuilderModifier',
         'actionAdminOrdersListingFieldsModifier',
         'actionAdminOrdersListingResultsModifier',
     ];
@@ -55,12 +53,12 @@ class DisplayOrderCarrier extends Module
     {
         $this->name = 'displayordercarrier';
         $this->tab = 'administration';
-        $this->version = '1.0.2';
+        $this->version = '1.1.0';
         $this->author = 'Matt75';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = [
             'min' => '1.6.1.0',
-            'max' => '1.7.7.0', // Because orders list should be migrate on 1.7.7
+            'max' => _PS_VERSION_,
         ];
 
         parent::__construct();
@@ -77,7 +75,7 @@ class DisplayOrderCarrier extends Module
     public function install()
     {
         return parent::install()
-            && $this->registerHook($this->hooks)
+            && $this->registerHook(static::HOOKS)
             && $this->installTabs()
             && Configuration::updateValue(static::CONFIGURATION_KEY_SHOW_LOGO, false);
     }
@@ -118,12 +116,18 @@ class DisplayOrderCarrier extends Module
             && Configuration::deleteByName(static::CONFIGURATION_KEY_SHOW_LOGO);
     }
 
+    /**
+     * Uninstall Tabs
+     *
+     * @return bool
+     */
     public function uninstallTabs()
     {
         $id_tab = (int) Tab::getIdFromClassName(static::MODULE_ADMIN_CONTROLLER);
 
         if ($id_tab) {
             $tab = new Tab($id_tab);
+
             return $tab->delete();
         }
 
@@ -139,23 +143,130 @@ class DisplayOrderCarrier extends Module
     }
 
     /**
-     * Add CSS to fix carrier logo size in Order List page
+     * Hook allows to modify Order grid definition since 1.7.7.0
      *
      * @param array $params
      */
-    public function hookActionAdminControllerSetMedia(array $params)
+    public function hookActionOrderGridDefinitionModifier(array $params)
     {
-        if ('AdminOrders' === Tools::getValue('controller')
-            && false === Tools::getIsset('addorder')
-            && false === Tools::getIsset('vieworder')
-            && Configuration::get(static::CONFIGURATION_KEY_SHOW_LOGO)
-        ) {
-            $this->context->controller->addCSS($this->getPathUri() . 'views/css/displayordercarrier.css', 'all');
+        if (empty($params['definition'])) {
+            return;
+        }
+
+        /** @var PrestaShop\PrestaShop\Core\Grid\Definition\GridDefinitionInterface $definition */
+        $definition = $params['definition'];
+
+        if (Configuration::get(static::CONFIGURATION_KEY_SHOW_LOGO)) {
+            $column = new PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\ImageColumn('carrier_reference');
+            $column->setName($this->l('Carrier'));
+            $column->setOptions([
+                'src_field' => 'carrier_logo',
+                'clickable' => false,
+            ]);
+        } else {
+            $column = new PrestaShop\PrestaShop\Core\Grid\Column\Type\DataColumn('carrier_reference');
+            $column->setName($this->l('Carrier'));
+            $column->setOptions([
+                'field' => 'carrier_name',
+            ]);
+        }
+
+        $definition
+            ->getColumns()
+            ->addAfter(
+                'payment',
+                $column
+            )
+        ;
+
+        /** @var PrestaShop\PrestaShop\Core\Form\ChoiceProvider\CarrierByReferenceChoiceProvider $carrierByReferenceChoiceProvider */
+        $carrierByReferenceChoiceProvider = $this->get('prestashop.core.form.choice_provider.carrier_by_reference_id');
+
+        $definition->getFilters()->add(
+            (new PrestaShop\PrestaShop\Core\Grid\Filter\Filter('carrier_reference', Symfony\Component\Form\Extension\Core\Type\ChoiceType::class))
+                ->setAssociatedColumn('carrier_reference')
+                ->setTypeOptions([
+                    'required' => false,
+                    'choices' => $carrierByReferenceChoiceProvider->getChoices(),
+                    'translation_domain' => false,
+                ])
+        );
+    }
+
+    /**
+     * Hook allows to modify Order grid data since 1.7.7.0
+     *
+     * @param array $params
+     */
+    public function hookActionOrderGridDataModifier(array $params)
+    {
+        if (empty($params['data'])) {
+            return;
+        }
+
+        /** @var PrestaShop\PrestaShop\Core\Grid\Data\GridData $gridData */
+        $gridData = $params['data'];
+        $modifiedRecords = $gridData->getRecords()->all();
+        /** @var PrestaShop\PrestaShop\Core\Image\Parser\ImageTagSourceParserInterface $imageTagSourceParser */
+        $imageTagSourceParser = $this->get('prestashop.core.image.parser.image_tag_source_parser');
+        $carrierLogoThumbnailProvider = new \PrestaShop\Module\DisplayOrderCarrier\CarrierLogoThumbnailProvider($imageTagSourceParser);
+
+        foreach ($modifiedRecords as $key => $data) {
+            if (empty($data['carrier_name'])) {
+                $modifiedRecords[$key]['carrier_name'] = Carrier::getCarrierNameFromShopName();
+            }
+            $modifiedRecords[$key]['carrier_logo'] = $carrierLogoThumbnailProvider->getPath($data['id_carrier']);
+        }
+
+        $params['data'] = new PrestaShop\PrestaShop\Core\Grid\Data\GridData(
+            new PrestaShop\PrestaShop\Core\Grid\Record\RecordCollection($modifiedRecords),
+            $gridData->getRecordsTotal(),
+            $gridData->getQuery()
+        );
+    }
+
+    /**
+     * Hook allows to modify Order query builder and add custom sql statements since 1.7.7.0
+     *
+     * @param array $params
+     */
+    public function hookActionOrderGridQueryBuilderModifier(array $params)
+    {
+        if (empty($params['search_query_builder']) || empty($params['search_criteria'])) {
+            return;
+        }
+
+        /** @var Doctrine\DBAL\Query\QueryBuilder $searchQueryBuilder */
+        $searchQueryBuilder = $params['search_query_builder'];
+
+        /** @var PrestaShop\PrestaShop\Core\Search\Filters\OrderFilters $searchCriteria */
+        $searchCriteria = $params['search_criteria'];
+
+        $searchQueryBuilder->addSelect(
+            'o.`id_carrier`, car.`id_reference` AS `carrier_reference`, car.`name` AS `carrier_name`'
+        );
+
+        $searchQueryBuilder->leftJoin(
+            'o',
+            '`' . _DB_PREFIX_ . 'carrier`',
+            'car',
+            'car.`id_carrier` = o.`id_carrier`'
+        );
+
+        if ('carrier_reference' === $searchCriteria->getOrderBy()) {
+            $searchQueryBuilder->orderBy('car.`id_reference`', $searchCriteria->getOrderWay());
+        }
+
+        foreach ($searchCriteria->getFilters() as $filterName => $filterValue) {
+            if ('carrier_reference' === $filterName) {
+                $searchQueryBuilder->andWhere('car.`id_reference` = :carrier_reference');
+                $searchQueryBuilder->setParameter('carrier_reference', $filterValue);
+            }
         }
     }
 
     /**
-     * Append custom fields.
+     * Hook allows to modify Order grid data before 1.7.7.0
      *
      * @param array $params
      */
@@ -163,7 +274,7 @@ class DisplayOrderCarrier extends Module
     {
         // If hook is called in AdminController::processFilter() we have to check existence
         if (isset($params['select'])) {
-            $params['select'] .= ', a.id_carrier, car.name AS carrier_name';
+            $params['select'] .= ', a.id_carrier, car.id_reference AS carrier_reference, car.name AS carrier_name';
         }
 
         // If hook is called in AdminController::processFilter() we have to check existence
@@ -171,36 +282,76 @@ class DisplayOrderCarrier extends Module
             $params['join'] .= 'LEFT JOIN ' . _DB_PREFIX_ . 'carrier AS car ON (a.id_carrier = car.id_carrier)';
         }
 
+        $list = [];
+        $carriers = Carrier::getCarriers(
+            (int) $this->context->employee->id_lang,
+            false,
+            false,
+            false,
+            null,
+            Carrier::ALL_CARRIERS
+        );
+
+        if (false === empty($carriers)) {
+            foreach ($carriers as $carrier) {
+                $list[(int) $carrier['id_reference']] = $carrier['name'];
+            }
+        }
+
         $params['fields']['carrier_name'] = [
             'title' => $this->l('Carrier'),
             'align' => 'text-center',
             'class' => 'fixed-width-xs',
-            'filter_key' => 'car!name',
-            'order_key' => 'car!name',
+            'filter_key' => 'car!id_reference',
+            'order_key' => 'car!id_reference',
+            'type' => 'select',
+            'list' => $list,
         ];
 
         if (Configuration::get(static::CONFIGURATION_KEY_SHOW_LOGO)) {
-            $params['fields']['carrier_name']['icon'] = true;
-            $params['fields']['carrier_name']['class'] .= ' column-img-carrier';
+            $params['fields']['carrier_name']['callback'] = 'renderCarrierLogo';
+            $params['fields']['carrier_name']['callback_object'] = $this;
         }
     }
 
     /**
-     * Set additional order data.
+     * Hook allows to modify Order grid data before 1.7.7.0
      *
      * @param array $params
      */
     public function hookActionAdminOrdersListingResultsModifier(array $params)
     {
-        if (Configuration::get(static::CONFIGURATION_KEY_SHOW_LOGO)) {
-            foreach ($params['list'] as $key => $fields) {
-                if (isset($fields['id_carrier'], $fields['carrier_name'])) {
-                    $params['list'][$key]['carrier_name'] = [
-                        'src' => '../s/' . (int) $fields['id_carrier'] . '.jpg',
-                        'alt' => Tools::safeOutput($fields['carrier_name']),
-                    ];
-                }
+        foreach ($params['list'] as $key => $fields) {
+            if (empty($fields['carrier_name'])) {
+                $params['list'][$key]['carrier_name'] = Carrier::getCarrierNameFromShopName();
             }
         }
+    }
+
+    /**
+     * Callback function used by legacy HelperList to retrieve Carrier logo before 1.7.7.0
+     *
+     * @param string $echo Carrier name
+     * @param array $tr Data
+     *
+     * @return string
+     */
+    public function renderCarrierLogo($echo, $tr)
+    {
+        $logoPath = _PS_SHIP_IMG_DIR_ . (int) $tr['id_carrier'] . '.jpg';
+
+        if (false === Tools::file_exists_cache($logoPath)) {
+            $logoPath = _PS_IMG_DIR_ . '404.gif';
+        }
+
+        return str_replace(
+            'alt=""',
+            'alt="' . $echo . '" title="' . $echo . '"',
+            ImageManager::thumbnail(
+                $logoPath,
+                'carrier_mini_' . (int) $tr['id_carrier'] . '.jpg',
+                34
+            )
+        );
     }
 }
