@@ -47,7 +47,7 @@ class DisplayOrderCarrier extends Module
         'customer' => 'Customer',
         'total_paid_tax_incl' => 'Total',
         'payment' => 'Payment',
-        'current_state' => 'Status',
+        'osname' => 'Status',
         'date_add' => 'Date',
     ];
 
@@ -189,7 +189,8 @@ class DisplayOrderCarrier extends Module
             ]);
         }
 
-        $display_after = Configuration::get(static::CONFIGURATION_KEY_COLUMN) ? Configuration::get(static::CONFIGURATION_KEY_COLUMN) : 'payment';
+        $display_after = Configuration::get(static::CONFIGURATION_KEY_COLUMN);
+        $display_after = $display_after ? $display_after : 'payment';
 
         $definition
             ->getColumns()

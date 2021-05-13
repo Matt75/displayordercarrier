@@ -48,12 +48,11 @@ class AdminDisplayOrderCarrierController extends ModuleAdminController
                     ],
                     DisplayOrderCarrier::CONFIGURATION_KEY_COLUMN => [
                         'title' => $this->trans('After wich column you want to display the carrier'),
-                        'validation' => 'isName',
+                        'validation' => 'isGenericName',
                         'required' => false,
                         'type' => 'select',
                         'list' => $list,
                         'identifier' => 'id',
-                        'visibility' => Shop::CONTEXT_ALL,
                     ],
                 ],
                 'submit' => [
