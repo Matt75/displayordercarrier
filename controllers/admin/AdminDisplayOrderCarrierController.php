@@ -30,6 +30,11 @@ class AdminDisplayOrderCarrierController extends ModuleAdminController
 
         parent::__construct();
 
+        $list = [];
+        foreach (DisplayOrderCarrier::ORDER_GRID_DEFINITIONS as $key => $value) {
+            $list[] = ['id' => $key, 'name' => $this->trans($value, [], 'Admin.Global')];
+        }
+
         $this->fields_options = [
             'products' => [
                 'title' => $this->l('Display Carrier on Order list'),
@@ -40,6 +45,15 @@ class AdminDisplayOrderCarrierController extends ModuleAdminController
                         'cast' => 'intval',
                         'required' => false,
                         'type' => 'bool',
+                    ],
+                    DisplayOrderCarrier::CONFIGURATION_KEY_COLUMN => [
+                        'title' => $this->trans('After wich column you want to display the carrier'),
+                        'validation' => 'isName',
+                        'required' => false,
+                        'type' => 'select',
+                        'list' => $list,
+                        'identifier' => 'id',
+                        'visibility' => Shop::CONTEXT_ALL,
                     ],
                 ],
                 'submit' => [
