@@ -37,6 +37,21 @@ class DisplayOrderCarrier extends Module
     ];
 
     /**
+     * List of Order Definitions
+     */
+    const ORDER_GRID_DEFINITIONS = [
+        'id_order' => 'ID',
+        'reference' => 'Reference',
+        'new' => 'New client',
+        'country_name' => 'Delivery',
+        'customer' => 'Customer',
+        'total_paid_tax_incl' => 'Total',
+        'payment' => 'Payment',
+        'osname' => 'Status',
+        'date_add' => 'Date',
+    ];
+
+    /**
      * Name of ModuleAdminController used for configuration
      */
     const MODULE_ADMIN_CONTROLLER = 'AdminDisplayOrderCarrier';
@@ -45,6 +60,7 @@ class DisplayOrderCarrier extends Module
      * Configuration key used to store toggle for display logo
      */
     const CONFIGURATION_KEY_SHOW_LOGO = 'DISPLAYORDERCARRIER_SHOW_LOGO';
+    const CONFIGURATION_KEY_COLUMN = 'DISPLAYORDERCARRIER_COLUMN';
 
     /**
      * Constructor.
@@ -77,7 +93,8 @@ class DisplayOrderCarrier extends Module
         return parent::install()
             && $this->registerHook(static::HOOKS)
             && $this->installTabs()
-            && Configuration::updateValue(static::CONFIGURATION_KEY_SHOW_LOGO, false);
+            && Configuration::updateValue(static::CONFIGURATION_KEY_SHOW_LOGO, false)
+            && Configuration::updateValue(static::CONFIGURATION_KEY_COLUMN, 'payment');
     }
 
     /**
@@ -113,7 +130,8 @@ class DisplayOrderCarrier extends Module
     {
         return parent::uninstall()
             && $this->uninstallTabs()
-            && Configuration::deleteByName(static::CONFIGURATION_KEY_SHOW_LOGO);
+            && Configuration::deleteByName(static::CONFIGURATION_KEY_SHOW_LOGO)
+            && Configuration::deleteByName(static::CONFIGURATION_KEY_COLUMN);
     }
 
     /**
@@ -171,10 +189,13 @@ class DisplayOrderCarrier extends Module
             ]);
         }
 
+        $display_after = Configuration::get(static::CONFIGURATION_KEY_COLUMN);
+        $display_after = $display_after ? $display_after : 'payment';
+
         $definition
             ->getColumns()
             ->addAfter(
-                'payment',
+                $display_after,
                 $column
             )
         ;
